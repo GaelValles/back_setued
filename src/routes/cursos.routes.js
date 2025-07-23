@@ -4,9 +4,9 @@ import { authRequired } from "../middlewares/validateToken.js";
 const router = Router()
 
 router.post('/subirCurso',authRequired, subirCurso);
-router.delete('/eliminarCurso', authRequired, eliminarCurso);
-router.put('/actualizarCurso', authRequired, actualizarCurso);
-router.get('/verCurso', authRequired, verCurso);
+router.delete('/eliminarCurso/:id', authRequired, eliminarCurso);
+router.put('/actualizarCurso/:id', authRequired, actualizarCurso);
+router.get('/verCurso/:id', authRequired, verCurso);
 router.get('/verCursos', authRequired, verCursos);
 
 
