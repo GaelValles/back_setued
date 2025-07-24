@@ -1,7 +1,17 @@
+// src/db.js
 import mongoose from "mongoose";
+import dotenv from "dotenv";
 
-export const connectDBTrabajadores = mongoose.createConnection('mongodb+srv://yanezgael576:pjVRhaoZseWQt4jU@clustertrabajadores.7bgnuj6.mongodb.net/?retryWrites=true&w=majority&appName=ClusterTrabajadores');
-export const connectDBCursos = mongoose.createConnection('mongodb+srv://gael3041220212:dyUYErXP7oT1vhl2@clustercursos.agolkrb.mongodb.net/?retryWrites=true&w=majority&appName=clusterCursos');
+dotenv.config(); // Carga las variables del archivo .env
+
+// Usa las variables de entorno
+export const connectDBTrabajadores = mongoose.createConnection(process.env.connectDBTrabajadores, {
+  
+});
+
+export const connectDBCursos = mongoose.createConnection(process.env.connectDBCursos, {
+  
+});
 
 // Verifica conexión trabajadores
 connectDBTrabajadores.on('connected', () => {
