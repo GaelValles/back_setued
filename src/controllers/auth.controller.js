@@ -1,11 +1,11 @@
 import Admin from "../models/admin.model.js";
-
+import { TOKEN_SECRET } from "../config.js";
 import bcrypt from "bcryptjs";
-
+import jwt from "jsonwebtoken";
 import {createAccessToken} from "../libs/jwt.js";
 
 export const register = async (req, res) => {
-    const {nombre, correo, puesto, p_responsable, telefono, password}= req.body;
+    const {nombre, correo, puesto, rol, telefono, password}= req.body;
     try {
     
     const passwordHash = await bcrypt.hash(password, 10);
@@ -13,7 +13,7 @@ export const register = async (req, res) => {
         nombre,
         correo,
         puesto,
-        p_responsable,
+        rol,
         telefono,
         password: passwordHash
     });
@@ -23,7 +23,10 @@ export const register = async (req, res) => {
     const AdminSaved = await newAdmin.save();
     const token = await createAccessToken({id: AdminSaved._id,})
     
-    res.cookie('token',token)
+    res.cookie('token',token, {
+        samesite: 'none',
+        secure: true,
+    })
     res.json({
         message: 'Usuario creado correctamente',
     })
@@ -31,6 +34,27 @@ export const register = async (req, res) => {
 
     } catch (error) {
         res.status(500).json({ message: error.message})
+    }
+};
+export const subirUser = async (req, res) => {
+    const {nombre, correo, puesto, rol, telefono, password} = req.body;
+    try {
+
+        const passwordHash = await bcrypt.hash(password, 10);
+        const newAdmin = new Admin({
+        nombre,
+        correo,
+        puesto,
+        rol,
+        telefono,
+        password: passwordHash
+    });
+
+        const AdminSaved = await newAdmin.save();
+            res.json(AdminSaved);
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };
 
@@ -58,12 +82,56 @@ export const login = async (req, res) => {
     }
 };
 
+export const getUsers = async (req, res) => {
+    try {
+        const users = await Admin.find();
+        res.json(users);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+export const deleteUser = async (req, res) => {
+    try {
+        const { id } = req.params; // Asegúrate de recibir el id por params
+        const user = await Admin.findByIdAndUpdate(id, { status: false }, { new: true });
+        if (!user) return res.status(404).json({ message: 'Usuario no encontrado' });
+        res.json({ message: 'Usuario desactivado correctamente', user });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
 export const logout = (req, res) => {
     res.cookie("token", "",{
         expires: new Date(0)
     });
     return res.sendStatus(200).json({message: "Sesión cerrada correctamente"});
 }
+
+export const verifyToken = async (req, res) => {
+        const { token } = req.cookies;
+
+        if (!token) return res.status(401).json({message: 'No token provided'});
+    
+        jwt.verify(token, TOKEN_SECRET, async (err, admin) => {
+        if (err) return res.status(401).json({message: 'Token no válido'});
+        
+        const adminFound = await Admin.findById(admin.id);
+        if (!adminFound) return res.status(404).json({message: 'Usuario no encontrado'});
+        console.log(adminFound);  
+        return res.json({
+            id: adminFound._id,
+            nombre: adminFound.nombre,
+            correo: adminFound.correo,
+            puesto: adminFound.puesto,
+            p_responsable: adminFound.p_responsable,
+            telefono: adminFound.telefono
+        })
+    });
+
+}
+
 
 export const perfil = async(req, res) => {
     const adminFound = await Admin.findById(req.admin.id)

@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 
 import authRoutes from './routes/auth.routes.js';
 import cursosRoutes from './routes/cursos.routes.js';
+import participantesRoutes from './routes/participantes.router.js';
 
 const app = express();
 
@@ -19,5 +20,6 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(authRoutes);
 app.use('/cursos', cursosRoutes);
+app.use('/participantes', participantesRoutes);
 
 export default app;
