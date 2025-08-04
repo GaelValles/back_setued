@@ -49,10 +49,20 @@ export const actualizarParticipante = async (req, res) => {
 export const verParticipante = async (req, res) => {
     const { id } = req.params;
     try {
-        // Populate para ver los cursos inscritos del participante
-        const participanteFound = await Participantes.findById(id).populate('cursos_inscritos.curso_id');
-        if (!participanteFound) return res.status(404).json({ message: 'Participante no encontrado' });
-        res.json(participanteFound);
+const participanteFound = await Participantes.findById(id);
+if (!participanteFound) return res.status(404).json({ message: 'Participante no encontrado' });
+
+// Cargar cursos manualmente (si están en otra base)
+const cursos = await Promise.all(participanteFound.cursos_inscritos.map(async (inscripcion) => {
+  const curso = await Curso.findById(inscripcion.curso_id); // desde otra conexión
+  return {
+    ...inscripcion.toObject(),
+    curso: curso ? curso.toObject() : null
+  };
+}));
+
+res.json({ ...participanteFound.toObject(), cursos_inscritos: cursos });
+
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
