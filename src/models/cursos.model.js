@@ -2,7 +2,7 @@ import {connectDBCursos}  from '../db.js';
 import mongoose from "mongoose";
 
 const cursosSchema = new mongoose.Schema({
-    nombreCurso: {
+    nombre: {
         type: String,
         required: true
     },
@@ -19,24 +19,29 @@ const cursosSchema = new mongoose.Schema({
         type: Date,
         required: true
     },
-
-    horario:{
-        type:String,
+    horario: {
+        type: String
     },
-    duracionhoras: {
+    duracion: {
         type: Number,
         required: true
     },
     modalidad: {
-        type: String,
+        type: String
     },
-    instructor:{
+    instructor: {
         type: String,
         required: true
     },
-    objetivo: {
+    perfilInstructor: {
+        type: String
+    },
+    objetivos: {
         type: String,
         required: true
+    },
+    perfilParticipante: {
+        type: String
     },
     cupoMinimo: {
         type: Number,
@@ -44,10 +49,6 @@ const cursosSchema = new mongoose.Schema({
     },
     cupoMaximo: {
         type: Number,
-        required: true
-    },
-    temario: {
-        type: String,
         required: true
     },
     costo: {
@@ -58,13 +59,32 @@ const cursosSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
-    participantes: {
+    temario: {
+        type: String,
+        required: true
+    },
+    procesoInscripcion: {
         type: String
     },
+    participantes: [{
+    participante_id: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Participantes'
+    },
+    fecha_inscripcion: {
+        type: Date,
+        default: Date.now
+    },
+    estado: {
+        type: String,
+        enum: ['inscrito', 'completado', 'abandonado'],
+        default: 'inscrito'
+    }
+}]
 },
 {
     timestamps: true
 }
-)
+);
 
 export default connectDBCursos.model('Curso', cursosSchema);

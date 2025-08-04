@@ -15,8 +15,13 @@ const adminSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    p_responsable:{
-        type: String
+    rol:{
+        type: Boolean,
+        required: true
+    },
+    status:{
+        type: Boolean,
+        default: true
     },
     telefono:{
         type: String,
