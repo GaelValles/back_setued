@@ -2,10 +2,11 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 
-export const connectDBParticipantes = mongoose.createConnection('mongodb+srv://yanezgael576:zlf8SO3is2GSXOzx@clusterparticipantes.hbz6men.mongodb.net/?retryWrites=true&w=majority&appName=ClusterParticipantes')
 
 dotenv.config(); // Carga las variables del archivo .env
+export const connectDBParticipantes = mongoose.createConnection(process.env.connectDBParticipantes, {
 
+});
 // Usa las variables de entorno
 export const connectDBTrabajadores = mongoose.createConnection(process.env.connectDBTrabajadores, {
   
