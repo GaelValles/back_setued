@@ -51,13 +51,7 @@ const participantesSchema = new mongoose.Schema({
         required: true,
         uppercase: true,
         trim: true,
-        validate: {
-            validator: function(v) {
-                // Validación básica de CURP (18 caracteres)
-                return /^[A-Z]{4}[0-9]{6}[HM][A-Z]{5}[0-9A-Z][0-9]$/.test(v);
-            },
-            message: 'CURP no tiene el formato válido'
-        }
+
     },
     // Agregamos certificado como en tu controlador actual
     certificado: {

@@ -590,3 +590,97 @@ export const verParticipantesPorEmpresa = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+export const verCertificado = async (req, res) => {
+    const { id } = req.params; // id del participante
+    
+    try {
+        // Verificar que el participante existe
+        const participante = await Participantes.findById(id);
+        if (!participante) {
+            return res.status(404).json({ message: 'Participante no encontrado' });
+        }
+
+        // Verificar que tiene certificado
+        if (!participante.certificado || !participante.certificado.url) {
+            return res.status(404).json({ message: 'El participante no tiene certificado subido' });
+        }
+
+        // Devolver la URL del certificado para visualización
+        res.json({
+            success: true,
+            url: participante.certificado.url,
+            nombre_archivo: participante.certificado.nombre_archivo,
+            fecha_subida: participante.certificado.fecha_subida,
+            participante: {
+                id: participante._id,
+                nombre: participante.nombre
+            }
+        });
+        
+    } catch (error) {
+        console.error('Error en verCertificado:', error);
+        res.status(500).json({ 
+            message: 'Error interno del servidor: ' + error.message
+        });
+    }
+};
+
+// Función para descargar certificado (devuelve el archivo como blob)
+export const descargarCertificado = async (req, res) => {
+    const { id } = req.params; // id del participante
+    
+    try {
+        // Verificar que el participante existe
+        const participante = await Participantes.findById(id);
+        if (!participante) {
+            return res.status(404).json({ message: 'Participante no encontrado' });
+        }
+
+        // Verificar que tiene certificado
+        if (!participante.certificado || !participante.certificado.url) {
+            return res.status(404).json({ message: 'El participante no tiene certificado subido' });
+        }
+
+        // Obtener el archivo de Cloudinary
+        const certificadoUrl = participante.certificado.url;
+        const nombreArchivo = participante.certificado.nombre_archivo || 
+            `certificado_${participante.nombre.replace(/\s+/g, '_')}.pdf`;
+
+        try {
+            // Usar fetch nativo de Node.js 22
+            const response = await fetch(certificadoUrl);
+            
+            if (!response.ok) {
+                console.error(`Error al obtener archivo de Cloudinary: ${response.status} ${response.statusText}`);
+                throw new Error(`No se pudo obtener el archivo de Cloudinary: ${response.status}`);
+            }
+
+            // Obtener el arrayBuffer y convertirlo a Buffer
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+
+            // Configurar headers para descarga
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
+            res.setHeader('Content-Length', buffer.length);
+            res.setHeader('Cache-Control', 'no-cache');
+
+            // Enviar el archivo
+            res.send(buffer);
+            
+        } catch (fetchError) {
+            console.error('Error al descargar desde Cloudinary:', fetchError);
+            return res.status(500).json({ 
+                message: 'Error al descargar el certificado desde el almacenamiento',
+                error: fetchError.message 
+            });
+        }
+        
+    } catch (error) {
+        console.error('Error en descargarCertificado:', error);
+        res.status(500).json({ 
+            message: 'Error interno del servidor: ' + error.message
+        });
+    }
+};

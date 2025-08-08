@@ -7,6 +7,8 @@ import {
     verParticipante,
     verParticipantes,
     subirCertificado,
+    verCertificado,        // NUEVA FUNCIÓN
+    descargarCertificado,  // NUEVA FUNCIÓN
     inscribirACurso,
     desinscribirDeCurso,
     actualizarEstadoCurso,
@@ -43,7 +45,6 @@ const upload = multer({
     }
 });
 
-// --- Middleware para manejar errores de Multer ---
 const handleMulterError = (error, req, res, next) => {
     if (error instanceof multer.MulterError) {
         if (error.code === 'LIMIT_FILE_SIZE') {
@@ -57,38 +58,43 @@ const handleMulterError = (error, req, res, next) => {
     next();
 };
 
-// [POST] /api/participantes -> Crear un nuevo participante
+// Crear un nuevo participante
 router.post('/add-participante', authRequired, upload.single('certificado'), handleMulterError, subirParticipante);
 
-// [GET] /api/participantes -> Ver todos los participantes
+// Ver todos los participantes
 router.get('/verParticipantes', authRequired, verParticipantes);
 
-// [GET] /api/participantes/:id -> Ver un participante específico
+// Ver un participante específico
 router.get('/verParticipante/:id', authRequired, verParticipante);
 
-// [PUT] /api/participantes/:id -> Actualizar un participante (usa el ID de la URL)
+// Actualizar un participante (usa el ID de la URL)
 router.put('/participantes/:id', authRequired, upload.single('certificado'), handleMulterError, actualizarParticipante);
 
-// [DELETE] /api/participantes -> Eliminar un participante (espera el ID en el body)
+// Eliminar un participante (espera el ID en el body)
 router.delete('/participantes', authRequired, eliminarParticipante);
 
-// [POST] /api/participantes/inscribir -> Inscribir a curso (espera participanteId y cursoId en el body)
+// Subir certificado a un participante existente
+router.post('/participante/:id/certificado', authRequired, upload.single('certificado'), handleMulterError, subirCertificado);
+
+// [GET] /api/participantes/participante/:id/certificado/ver -> Ver certificado (obtener URL)
+router.get('/participante/:id/certificado/ver', authRequired, verCertificado);
+
+// [GET] /api/participantes/participante/:id/certificado/descargar -> Descargar certificado
+router.get('/participante/:id/certificado/descargar', authRequired, descargarCertificado);
+
+// Inscribir a curso (espera participanteId y cursoId en el body)
 router.post('/participantes/inscribir', authRequired, inscribirACurso);
 
-// [POST] /api/participantes/desinscribir -> Desinscribir de curso (espera participanteId y cursoId en el body)
+//Desinscribir de curso (espera participanteId y cursoId en el body)
 router.post('/participantes/desinscribir', authRequired, desinscribirDeCurso);
 
-// [POST] /api/participantes/:id/certificado -> Subir certificado a un participante existente
-router.post('/participantes/:id/certificado', authRequired, upload.single('certificado'), handleMulterError, subirCertificado);
-
-// [PUT] /api/participantes/:participanteId/cursos/:cursoId/estado -> Actualizar estado de un curso
+// Actualizar estado de un curso
 router.put('/participantes/:participanteId/cursos/:cursoId/estado', authRequired, actualizarEstadoCurso);
 
-// [GET] /api/cursos/:cursoId/participantes -> Ver participantes de un curso
+//Ver participantes de un curso
 router.get('/cursos/:cursoId/participantes', authRequired, verParticipantesDeCurso);
 
-// [GET] /api/empresas/:empresaId/participantes -> Ver participantes de una empresa
+// Ver participantes de una empresa
 router.get('/empresas/:empresaId/participantes', authRequired, verParticipantesPorEmpresa);
-
 
 export default router;
