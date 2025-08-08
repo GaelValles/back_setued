@@ -2,10 +2,11 @@ import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+
 import authRoutes from './routes/auth.routes.js';
 import cursosRoutes from './routes/cursos.routes.js';
-
 import participantesRoutes from './routes/participantes.router.js';
+import empresasRoutes from './routes/empresas.routes.js';
 
 import dotenv from 'dotenv';
 dotenv.config();
@@ -25,5 +26,5 @@ app.use(cookieParser());
 app.use(authRoutes);
 app.use('/cursos', cursosRoutes);
 app.use('/participantes', participantesRoutes);
-
+app.use('/empresas', empresasRoutes);
 export default app;

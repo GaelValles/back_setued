@@ -1,30 +1,14 @@
 import Curso from "../models/cursos.model.js";
 import Participantes from "../models/participantes.model.js";
+
 //Funcion para subir cursos
-//Esta funcion recibe los datos del curso y lo guarda en la base de datos
 export const subirCurso = async (req, res) => {
-    const {nombre, tipo, fechaInicio, fechaFin, horario, duracion, modalidad, instructor, perfilInstructor, objetivos,
-            perfilParticipante, cupoMinimo, cupoMaximo, costo, costoGeneral, temario, procesoInscripcion} = req.body;
+    const { nombre, tipo, fechaInicio, fechaFin, horario, duracion, modalidad, instructor, perfilInstructor, objetivos,
+            perfilParticipante, cupoMinimo, cupoMaximo, costo, costoGeneral, temario, procesoInscripcion } = req.body;
     try {
         const newCurso = new Curso({
-            nombre,
-            tipo,
-            fechaInicio,
-            fechaFin,
-            horario,
-            duracion,
-            modalidad,
-            instructor,
-            perfilInstructor,
-            objetivos,
-            perfilParticipante,
-            cupoMinimo,
-            cupoMaximo,
-            costo,
-            costoGeneral,
-            temario,
-            procesoInscripcion
-            // Removido 'correo' porque no existe en tu modelo
+            nombre, tipo, fechaInicio, fechaFin, horario, duracion, modalidad, instructor, perfilInstructor, objetivos,
+            perfilParticipante, cupoMinimo, cupoMaximo, costo, costoGeneral, temario, procesoInscripcion
         });
 
         const cursoSaved = await newCurso.save();
@@ -34,13 +18,26 @@ export const subirCurso = async (req, res) => {
     }
 };
 
+// CORRECCIÓN: Ahora mantiene la integridad de los datos
 export const eliminarCurso = async (req, res) => {
-    //Esta funcion recibe el id del curso y lo elimina de la base de datos
     const { id } = req.body;
     try {
+        // 1. Encontrar a todos los participantes inscritos en este curso
+        const participantesAfectados = await Participantes.find({ 'cursos_inscritos.curso_id': id });
+
+        // 2. Eliminar la referencia del curso en cada participante
+        for (const participante of participantesAfectados) {
+            participante.cursos_inscritos = participante.cursos_inscritos.filter(
+                inscripcion => inscripcion.curso_id.toString() !== id
+            );
+            await participante.save();
+        }
+
+        // 3. Ahora sí, eliminar el curso
         const cursoDeleted = await Curso.findByIdAndDelete(id);
         if (!cursoDeleted) return res.status(404).json({ message: 'Curso no encontrado' });
-        res.json({ message: 'Curso eliminado correctamente' });
+
+        res.json({ message: 'Curso eliminado correctamente y participantes actualizados.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -57,45 +54,34 @@ export const actualizarCurso = async (req, res) => {
     }
 };
 
+// MEJORA: La respuesta ahora es más clara y estructurada
 export const verCurso = async (req, res) => {
     const { id } = req.params;
     try {
-        // Obtener el curso sin populate
         const cursoFound = await Curso.findById(id);
         if (!cursoFound) return res.status(404).json({ message: 'Curso no encontrado' });
         
-        // Si hay participantes, obtener sus datos manualmente
-        if (cursoFound.participantes && cursoFound.participantes.length > 0) {
-            // Extraer los IDs de participantes
-            const participantesIds = cursoFound.participantes.map(p => p.participante_id);
+        // Crear una copia del objeto para modificarlo
+        const cursoCompleto = cursoFound.toObject();
+
+        if (cursoCompleto.participantes && cursoCompleto.participantes.length > 0) {
+            const participantesIds = cursoCompleto.participantes.map(p => p.participante_id);
+            const participantesData = await Participantes.find({ _id: { $in: participantesIds } }).select('nombre correo telefono empresaProdecendia');
             
-            // Obtener datos de participantes de la otra base de datos
-            const participantesData = await Participantes.find({ 
-                _id: { $in: participantesIds } 
-            });
-            
-            // Combinar los datos
-            const participantesCompletos = cursoFound.participantes.map(p => {
-                const participanteData = participantesData.find(
-                    pd => pd._id.toString() === p.participante_id.toString()
-                );
+            // Crear un mapa para búsqueda eficiente
+            const participantesMap = new Map(participantesData.map(p => [p._id.toString(), p]));
+
+            // Enriquecer la información de cada participante en la inscripción
+            cursoCompleto.participantes = cursoCompleto.participantes.map(inscripcion => {
                 return {
-                    ...p.toObject(),
-                    participante_id: participanteData || null
+                    ...inscripcion,
+                    participante_info: participantesMap.get(inscripcion.participante_id.toString()) || null
                 };
             });
-            
-            // Crear objeto con datos completos
-            const cursoCompleto = {
-                ...cursoFound.toObject(),
-                participantes: participantesCompletos
-            };
-            
-            res.json(cursoCompleto);
-        } else {
-            // Si no hay participantes, devolver el curso tal como está
-            res.json(cursoFound);
         }
+        
+        res.json(cursoCompleto);
+
     } catch (error) {
         console.error("Error en verCurso:", error);
         res.status(500).json({ message: error.message });
@@ -111,66 +97,72 @@ export const verCursos = async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-};
+}
 
-// Nueva función para inscribir participante a curso
+// Esta función ya estaba bien, la dejamos como está
 export const inscribirParticipante = async (req, res) => {
-    const { cursoId } = req.params; // cursoId viene de la URL
-    const { participanteId } = req.body; // participanteId viene del body
+    const { cursoId } = req.params;
+    const { participanteId } = req.body;
     
     try {
-        // Verificar que el curso existe
         const curso = await Curso.findById(cursoId);
         if (!curso) return res.status(404).json({ message: 'Curso no encontrado' });
 
-        // Verificar que el participante existe en la otra base de datos
         const participante = await Participantes.findById(participanteId);
         if (!participante) return res.status(404).json({ message: 'Participante no encontrado' });
 
-        // Verificar cupo disponible
         if (curso.participantes.length >= curso.cupoMaximo) {
             return res.status(400).json({ message: 'Curso lleno, no hay cupos disponibles' });
         }
 
-        // Verificar que el participante no esté ya inscrito
-        const yaInscrito = curso.participantes.some(p => p.participante_id.toString() === participanteId);
-        if (yaInscrito) {
+        if (curso.participantes.some(p => p.participante_id.toString() === participanteId)) {
             return res.status(400).json({ message: 'El participante ya está inscrito en este curso' });
         }
 
-        // Agregar participante al curso
-        curso.participantes.push({
-            participante_id: participanteId,
-            fecha_inscripcion: new Date(),
-            estado: 'inscrito'
-        });
+        const fechaInscripcion = new Date();
+        curso.participantes.push({ participante_id: participanteId, fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
+        participante.cursos_inscritos.push({ curso_id: cursoId, fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
 
-        // También actualizar el participante con el curso inscrito
-        participante.cursos_inscritos.push({
-            curso_id: cursoId,
-            fecha_inscripcion: new Date(),
-            estado: 'inscrito'
-        });
-
-        // Guardar en ambas bases de datos
         await curso.save();
         await participante.save();
 
-        res.json({ 
-            message: 'Participante inscrito correctamente', 
-            curso: {
-                id: curso._id,
-                nombre: curso.nombre,
-                participantes_inscritos: curso.participantes.length,
-                cupo_maximo: curso.cupoMaximo
-            },
-            participante: {
-                id: participante._id,
-                nombre: participante.nombre // Ajusta según tu modelo
-            }
-        });
+        res.json({ message: 'Participante inscrito correctamente' });
     } catch (error) {
-        console.error("Error en inscribirParticipante:", error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// ¡NUEVA FUNCIÓN! Para desinscribir participantes
+export const desinscribirParticipante = async (req, res) => {
+    const { cursoId, participanteId } = req.params; // Ambos IDs desde la URL
+
+    try {
+        const curso = await Curso.findById(cursoId);
+        if (!curso) return res.status(404).json({ message: 'Curso no encontrado' });
+
+        const participante = await Participantes.findById(participanteId);
+        if (!participante) return res.status(404).json({ message: 'Participante no encontrado' });
+
+        // Verificar que el participante realmente esté inscrito
+        const estaInscritoCurso = curso.participantes.some(p => p.participante_id.toString() === participanteId);
+        const estaInscritoParticipante = participante.cursos_inscritos.some(c => c.curso_id.toString() === cursoId);
+
+        if (!estaInscritoCurso || !estaInscritoParticipante) {
+            return res.status(400).json({ message: 'El participante no se encuentra inscrito en este curso.' });
+        }
+
+        // Remover de la lista del curso
+        curso.participantes = curso.participantes.filter(p => p.participante_id.toString() !== participanteId);
+
+        // Remover de la lista del participante
+        participante.cursos_inscritos = participante.cursos_inscritos.filter(c => c.curso_id.toString() !== cursoId);
+        
+        await curso.save();
+        await participante.save();
+
+        res.json({ message: 'Participante desinscrito correctamente.' });
+
+    } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };

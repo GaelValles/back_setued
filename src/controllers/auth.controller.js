@@ -102,6 +102,22 @@ export const deleteUser = async (req, res) => {
     }
 };
 
+export const getUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await Admin.findById(id).select('-password'); // Excluye el campo de la contraseña
+
+        if (!user) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        res.json(user);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+
 export const logout = (req, res) => {
     res.cookie("token", "",{
         expires: new Date(0)

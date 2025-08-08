@@ -11,6 +11,10 @@ export const connectDBTrabajadores = mongoose.createConnection(process.env.conne
   
 });
 
+export const connectDBEmpresas = mongoose.createConnection(process.env.connectDBEmpresas, {
+  
+});
+
 export const connectDBCursos = mongoose.createConnection(process.env.connectDBCursos, {
   
 });
@@ -38,4 +42,12 @@ connectDBParticipantes.on('connected', () => {
 });
 connectDBParticipantes.on('error', (err) => {
   console.error('Error en conexión Participantes:', err);
+});
+
+// Verifica conexión empresas
+connectDBEmpresas.on('connected', () => {
+  console.log('Conectado a MongoDB Empresas');
+});
+connectDBEmpresas.on('error', (err) => {
+  console.error('Error en conexión Empresas:', err);
 });
