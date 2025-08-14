@@ -99,39 +99,166 @@ export const subirParticipante = async (req, res) => {
 };
 
 export const eliminarParticipante = async (req, res) => {
-    const { id } = req.body;
+    const { id } = req.params; // Cambiar de req.body a req.params
     try {
         const participante = await Participantes.findById(id);
-        if (!participante) return res.status(404).json({ message: 'Participante no encontrado' });
+        if (!participante) {
+            return res.status(404).json({ message: 'Participante no encontrado' });
+        }
 
-        // Si tiene empresa asociada, remover de la lista de participantes de la empresa
+        // Verificar si ya está inactivo
+        if (participante.estado === 'inactivo') {
+            return res.status(400).json({ message: 'El participante ya está inactivo' });
+        }
+
+        // BAJA LÓGICA: Cambiar estado a inactivo en lugar de eliminar físicamente
+        participante.estado = 'inactivo';
+        participante.fecha_baja = new Date();
+        await participante.save();
+
+        // Si tiene empresa asociada, actualizar el estado en la empresa
         if (participante.empresa_id) {
             const empresa = await Empresa.findById(participante.empresa_id);
             if (empresa) {
-                empresa.participantes = empresa.participantes.filter(
-                    p => p.participante_id && p.participante_id.toString() !== id
+                const participanteEnEmpresa = empresa.participantes.find(
+                    p => p.participante_id && p.participante_id.toString() === id
                 );
-                await empresa.save();
+                if (participanteEnEmpresa) {
+                    participanteEnEmpresa.estado = 'inactivo';
+                    participanteEnEmpresa.fecha_baja = new Date();
+                    await empresa.save();
+                }
             }
         }
 
-        // Remover participante de los cursos donde esté inscrito
+        // Actualizar estado en cursos donde esté inscrito (opcional)
         for (const inscripcion of participante.cursos_inscritos) {
+            if (inscripcion.estado === 'inscrito') {
+                inscripcion.estado = 'abandonado';
+                inscripcion.fecha_abandono = new Date();
+            }
+            
+            // Actualizar también en el curso
             const curso = await Curso.findById(inscripcion.curso_id);
             if (curso) {
-                curso.participantes = curso.participantes.filter(
-                    p => p.participante_id && p.participante_id.toString() !== id
+                const participanteEnCurso = curso.participantes.find(
+                    p => p.participante_id && p.participante_id.toString() === id
                 );
-                await curso.save();
+                if (participanteEnCurso && participanteEnCurso.estado === 'inscrito') {
+                    participanteEnCurso.estado = 'abandonado';
+                    participanteEnCurso.fecha_abandono = new Date();
+                    await curso.save();
+                }
             }
         }
 
-        await Participantes.findByIdAndDelete(id);
-        res.json({ message: 'Participante eliminado correctamente' });
+        await participante.save();
+
+        res.json({ 
+            message: 'Participante desactivado correctamente',
+            participante: {
+                id: participante._id,
+                nombre: participante.nombre,
+                estado: participante.estado,
+                fecha_baja: participante.fecha_baja
+            }
+        });
     } catch (error) {
+        console.error('Error al eliminar participante:', error);
         res.status(500).json({ message: error.message });
     }
 };
+
+export const verHistorialParticipantes = async (req, res) => {
+    try {
+        // Solo mostrar participantes inactivos
+        const participantesInactivos = await Participantes.find({ 
+            estado: 'inactivo'
+        }).sort({ fecha_baja: -1 }); // Ordenar por fecha de baja más reciente primero
+        
+        // Agregar información de empresa y estadísticas para cada participante
+        const participantesConInfo = await Promise.all(
+            participantesInactivos.map(async (participante) => {
+                let empresaInfo = null;
+                if (participante.empresa_id) {
+                    const empresa = await Empresa.findById(participante.empresa_id);
+                    if (empresa) {
+                        empresaInfo = {
+                            id: empresa._id,
+                            nombre: empresa.nombre,
+                            tipo: empresa.tipo,
+                            municipio: empresa.municipio
+                        };
+                    }
+                }
+                
+                // Calcular estadísticas de cursos
+                const totalCursos = participante.cursos_inscritos.length;
+                const cursosCompletados = participante.cursos_inscritos.filter(c => c.estado === 'completado').length;
+                const cursosAbandonados = participante.cursos_inscritos.filter(c => c.estado === 'abandonado').length;
+                const cursosInscritos = participante.cursos_inscritos.filter(c => c.estado === 'inscrito').length;
+                
+                // Calcular tiempo activo (desde createdAt hasta fecha_baja)
+                const fechaCreacion = participante.createdAt;
+                const fechaBaja = participante.fecha_baja;
+                let tiempoActivo = null;
+                
+                if (fechaCreacion && fechaBaja) {
+                    const diffTime = Math.abs(fechaBaja - fechaCreacion);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                    tiempoActivo = {
+                        dias: diffDays,
+                        meses: Math.floor(diffDays / 30),
+                        texto: diffDays > 30 ? `${Math.floor(diffDays / 30)} meses` : `${diffDays} días`
+                    };
+                }
+                
+                return {
+                    ...participante.toObject(),
+                    empresa_info: empresaInfo,
+                    estadisticas_cursos: {
+                        total: totalCursos,
+                        completados: cursosCompletados,
+                        abandonados: cursosAbandonados,
+                        inscritos: cursosInscritos
+                    },
+                    tiempo_activo: tiempoActivo,
+                    // Formatear fechas para mejor visualización
+                    fecha_creacion_formateada: fechaCreacion ? fechaCreacion.toLocaleDateString('es-MX') : null,
+                    fecha_baja_formateada: fechaBaja ? fechaBaja.toLocaleDateString('es-MX') : null
+                };
+            })
+        );
+        
+        // Estadísticas generales del historial
+        const estadisticasGenerales = {
+            total_inactivos: participantesConInfo.length,
+            total_cursos_completados: participantesConInfo.reduce((sum, p) => sum + p.estadisticas_cursos.completados, 0),
+            total_cursos_abandonados: participantesConInfo.reduce((sum, p) => sum + p.estadisticas_cursos.abandonados, 0),
+            empresas_afectadas: [...new Set(participantesConInfo
+                .filter(p => p.empresa_info)
+                .map(p => p.empresa_info.nombre))].length,
+            bajas_este_mes: participantesConInfo.filter(p => {
+                if (!p.fecha_baja) return false;
+                const fechaBaja = new Date(p.fecha_baja);
+                const ahora = new Date();
+                return fechaBaja.getMonth() === ahora.getMonth() && 
+                       fechaBaja.getFullYear() === ahora.getFullYear();
+            }).length
+        };
+        
+        res.json({
+            participantes: participantesConInfo,
+            estadisticas: estadisticasGenerales,
+            mensaje: participantesConInfo.length === 0 ? 'No hay participantes en el historial' : undefined
+        });
+        
+    } catch (error) {
+        console.error('Error al obtener historial de participantes:', error);
+        res.status(500).json({ message: error.message });
+    }
+};
+
 
 export const actualizarParticipante = async (req, res) => {
     const { id } = req.params;
@@ -228,7 +355,16 @@ export const verParticipante = async (req, res) => {
 
 export const verParticipantes = async (req, res) => {
     try {
-        const participantes = await Participantes.find();
+        // Solo mostrar participantes activos (por defecto)
+        const incluirInactivos = req.query.incluirInactivos === 'true';
+        const filtro = incluirInactivos ? {} : { 
+            $or: [
+                { estado: 'activo' },
+                { estado: { $exists: false } } // Para registros antiguos sin campo estado
+            ]
+        };
+        
+        const participantes = await Participantes.find(filtro);
         
         // Agregar información básica de empresa para cada participante
         const participantesConEmpresa = await Promise.all(

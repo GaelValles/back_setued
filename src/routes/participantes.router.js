@@ -4,11 +4,12 @@ import {
     subirParticipante,
     eliminarParticipante,
     actualizarParticipante,
+    verHistorialParticipantes,
     verParticipante,
     verParticipantes,
     subirCertificado,
-    verCertificado,        // NUEVA FUNCIÓN
-    descargarCertificado,  // NUEVA FUNCIÓN
+    verCertificado,
+    descargarCertificado,
     inscribirACurso,
     desinscribirDeCurso,
     actualizarEstadoCurso,
@@ -22,7 +23,7 @@ const router = Router();
 // --- Configuración de Multer para la subida de archivos PDF ---
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Asegúrate de que este directorio exista en tu servidor
+        
         cb(null, 'uploads/certificados/');
     },
     filename: function (req, file, cb) {
@@ -70,9 +71,6 @@ router.get('/verParticipante/:id', authRequired, verParticipante);
 // Actualizar un participante (usa el ID de la URL)
 router.put('/participantes/:id', authRequired, upload.single('certificado'), handleMulterError, actualizarParticipante);
 
-// Eliminar un participante (espera el ID en el body)
-router.delete('/participantes', authRequired, eliminarParticipante);
-
 // Subir certificado a un participante existente
 router.post('/participante/:id/certificado', authRequired, upload.single('certificado'), handleMulterError, subirCertificado);
 
@@ -84,6 +82,12 @@ router.get('/participante/:id/certificado/descargar', authRequired, descargarCer
 
 // Inscribir a curso (espera participanteId y cursoId en el body)
 router.post('/participantes/inscribir', authRequired, inscribirACurso);
+
+// Eliminar un participante
+router.delete('/participante/:id/bajar', authRequired, eliminarParticipante);
+
+// Ver historial de participantes
+router.get('/historial-participantes', authRequired, verHistorialParticipantes);
 
 //Desinscribir de curso (espera participanteId y cursoId en el body)
 router.post('/participantes/desinscribir', authRequired, desinscribirDeCurso);
