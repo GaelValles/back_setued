@@ -72,10 +72,12 @@ export const login = async (req, res) => {
 
         // 🔥 Cookie con opciones
         res.cookie('token', token, {
-            httpOnly: true,          // Evita que JavaScript lo lea (seguridad)
+            httpOnly: true,      // nadie puede leerla con JS
+            secure: true,        // HTTPS obligatorio en producción
+            sameSite: 'None',    // permite cookies cross-site
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-            secure: false,           // true si estás en HTTPS
-            sameSite: 'lax'          // 'lax' para la mayoría de casos, 'none' si cross-site y HTTPS
+            domain: 'https://pruebas-80fw.onrender.com', // opcional si quieres compartir subdominios
+            path: '/'
 
         });
 
