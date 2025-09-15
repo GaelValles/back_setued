@@ -73,7 +73,7 @@ export const login = async (req, res) => {
         // 🔥 Cookie con opciones
         res.cookie('token', token, {
             httpOnly: true,
-            sameSite: 'lax', // or 'none' if cross-site
+            sameSite: 'strict', // or 'none' if cross-site
             secure: false,
         });
 
