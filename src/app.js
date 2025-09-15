@@ -15,6 +15,7 @@ dotenv.config();
 const app = express();
 
 app.use(morgan('dev'));
+app.set('trust proxy', 1);
 app.use(cors({
   origin: ['http://localhost:5173', 'https://pruebas-80fw.onrender.com'],
   credentials: true                // permite enviar cookies
