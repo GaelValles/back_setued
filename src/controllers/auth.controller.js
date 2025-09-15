@@ -72,9 +72,11 @@ export const login = async (req, res) => {
 
         // 🔥 Cookie con opciones
         res.cookie('token', token, {
-            httpOnly: true,
-            sameSite: 'strict', // or 'none' if cross-site
-            secure: false,
+            httpOnly: true,          // Evita que JavaScript lo lea (seguridad)
+            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+            secure: false,           // true si estás en HTTPS
+            sameSite: 'lax'          // 'lax' para la mayoría de casos, 'none' si cross-site y HTTPS
+
         });
 
         res.json({ message: 'Usuario encontrado correctamente' });
