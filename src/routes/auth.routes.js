@@ -6,7 +6,7 @@ const router = Router()
 router.post('/login', login);
 router.post('/register', register);
 router.post('/addUser', subirUser);
-router.get('/verUsuarios',authRequired, getUsers);
+router.get('/verUsuarios',getUsers);
 router.get('/VerUsuario/:id',getUser);
 
 router.put('/deleteUser/:id', authRequired, deleteUser);

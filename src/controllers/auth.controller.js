@@ -60,27 +60,30 @@ export const subirUser = async (req, res) => {
 
 
 export const login = async (req, res) => {
-    const {correo, password}= req.body;
-    try {
-    const AdminFound = await Admin.findOne({correo});
+  const { correo, password } = req.body;
+  try {
+    const AdminFound = await Admin.findOne({ correo });
+    if (!AdminFound) return res.status(400).json({ message: 'Usuario no encontrado' });
 
-    if (!AdminFound) return res.status(400).json({message: 'Usuario no encontrado'});
     const isMatch = await bcrypt.compare(password, AdminFound.password);
-    
-    if (!isMatch) return res.status(400).json({message: 'Contraseña incorrecta'});
+    if (!isMatch) return res.status(400).json({ message: 'Contraseña incorrecta' });
 
-    const token = await createAccessToken({id: AdminFound._id,})
-    
-    res.cookie('token',token)
-    res.json({
-        message: 'Usuario encontrado correctamente',
-    })
-    // res.json(AdminSaved)
+    const token = await createAccessToken({ id: AdminFound._id });
 
-    } catch (error) {
-        res.status(500).json({ message: error.message})
-    }
+    // 🔥 Cookie con opciones
+    res.cookie('token', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'none',
+      maxAge: 3600000
+    });
+
+    res.json({ message: 'Usuario encontrado correctamente' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 };
+
 
 export const getUsers = async (req, res) => {
     try {
