@@ -20,7 +20,7 @@ const router = Router();
 router.post('/add-empresa', authRequired, subirEmpresa);
 
 // Ver el listado de todas las empresas
-router.get('/VerEmpresas', authRequired, verEmpresas);
+router.get('/VerEmpresas',  verEmpresas);
 
 // Ver una empresa específica con todos sus detalles
 router.get('/VerEmpresa/:id', authRequired, verEmpresa);
