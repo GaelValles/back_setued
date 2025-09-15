@@ -76,7 +76,7 @@ export const login = async (req, res) => {
             secure: true,        // HTTPS obligatorio en producción
             sameSite: 'None',    // permite cookies cross-site
             maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
-            domain: 'https://pruebas-80fw.onrender.com/', // opcional si quieres compartir subdominios
+            domain: 'pruebas-80fw.onrender.com/', // opcional si quieres compartir subdominios
             path: '/'
 
         });
