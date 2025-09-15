@@ -73,10 +73,8 @@ export const login = async (req, res) => {
         // 🔥 Cookie con opciones
         res.cookie('token', token, {
             httpOnly: true,
-            expires: new Date(Date.now() + 900000),
-            sameSite: "lax",
-            secure: true,
-            priority: "high"
+            sameSite: 'lax', // or 'none' if cross-site
+            secure: false,
         });
 
         res.json({ message: 'Usuario encontrado correctamente' });
