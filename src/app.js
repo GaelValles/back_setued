@@ -15,12 +15,10 @@ dotenv.config();
 const app = express();
 
 app.use(morgan('dev'));
-app.use(cors(
-    {
-        origin: ['https://pruebas-80fw.onrender.com', 'http://localhost:5173', 'https://pruebas-80fw.onrender.com/'],
-        credentials: true
-    }
-));
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://pruebas-80fw.onrender.com'],
+  credentials: true                // permite enviar cookies
+}));
 app.use(express.json());
 app.use(cookieParser());
 app.use(authRoutes);
