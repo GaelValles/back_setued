@@ -17,7 +17,7 @@ const app = express();
 app.use(morgan('dev'));
 app.use(cors(
     {
-        origin: ['http://localhost:5173', 'https://pruebas-80fw.onrender.com'],
+        origin: ['http://localhost:5173', 'https://pruebas-80fw.onrender.com/'],
         credentials: true
     }
 ));
