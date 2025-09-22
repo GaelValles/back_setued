@@ -22,8 +22,25 @@ const validarPDF = (file) => {
 
 //Función para subir participantes
 export const subirParticipante = async (req, res) => {
-    const { nombre, empresaProdecendia, empresa_id, puesto, edad, correo, telefono, curp } = req.body;
+    const { 
+        nombre, 
+        sexo,           // Nuevo campo
+        empresaProdecendia, 
+        empresa_id, 
+        puesto, 
+        edad, 
+        correo, 
+        telefono, 
+        curp,
+        fechaRegistro // Nuevo campo
+    } = req.body;
+    
     try {
+        // Validar que el sexo sea uno de los valores permitidos
+        if (!['Hombre', 'Mujer', 'No binario'].includes(sexo)) {
+            throw new Error('El sexo debe ser: Hombre, Mujer o No binario');
+        }
+
         let certificadoData = null;
         
         // Si se envía un archivo de certificado PDF, validarlo y subirlo a Cloudinary
@@ -35,7 +52,9 @@ export const subirParticipante = async (req, res) => {
                 url: result.secure_url,
                 public_id: result.public_id,
                 nombre_archivo: req.file.originalname,
-                fecha_subida: new Date()
+                tipo: 'otro',
+                fecha_subida: new Date(),
+                estado: 'activo'
             };
 
             // Limpiar archivo temporal
@@ -56,6 +75,7 @@ export const subirParticipante = async (req, res) => {
 
         const newParticipante = new Participantes({
             nombre,
+            sexo,           // Nuevo campo
             empresaProdecendia: nombreEmpresa,
             empresa_id: empresa_id || null,
             puesto,
@@ -63,7 +83,8 @@ export const subirParticipante = async (req, res) => {
             correo,
             telefono,
             curp,
-            certificado: certificadoData
+            certificados: certificadoData ? [certificadoData] : [], // Ahora es un array
+            fechaRegistro: fechaRegistro || new Date()
         });
 
         const participanteSaved = await newParticipante.save();
@@ -71,7 +92,7 @@ export const subirParticipante = async (req, res) => {
         // Si tiene empresa_id, actualizar la lista de participantes en la empresa
         if (empresa_id) {
             const empresa = await Empresa.findById(empresa_id);
-            if (empresa && !empresa.participantes.some(p => p.participante_id && p.participante_id.toString() === participanteSaved._id.toString())) {
+            if (empresa) {
                 empresa.participantes.push({
                     participante_id: participanteSaved._id,
                     fecha_asociacion: new Date(),
@@ -259,23 +280,43 @@ export const verHistorialParticipantes = async (req, res) => {
     }
 };
 
-
 export const actualizarParticipante = async (req, res) => {
     const { id } = req.params;
     try {
         let updateData = { ...req.body };
         
+        // Validar sexo si se está actualizando
+        if (updateData.sexo && !['Hombre', 'Mujer', 'No binario'].includes(updateData.sexo)) {
+            throw new Error('El sexo debe ser: Hombre, Mujer o No binario');
+        }
+
         // Si se envía un nuevo archivo PDF de certificado, validarlo y subirlo a Cloudinary
         if (req.file) {
             validarPDF(req.file);
             
             const result = await uploadCertificado(req.file.path);
-            updateData.certificado = {
+            const nuevoCertificado = {
                 url: result.secure_url,
                 public_id: result.public_id,
                 nombre_archivo: req.file.originalname,
-                fecha_subida: new Date()
+                tipo: updateData.tipo_certificado || 'otro',
+                descripcion: updateData.descripcion_certificado,
+                fecha_subida: new Date(),
+                estado: 'activo'
             };
+
+            // Obtener participante actual
+            const participante = await Participantes.findById(id);
+            if (!participante) {
+                throw new Error('Participante no encontrado');
+            }
+
+            // Agregar nuevo certificado al array
+            if (!participante.certificados) {
+                participante.certificados = [];
+            }
+            participante.certificados.push(nuevoCertificado);
+            updateData.certificados = participante.certificados;
 
             // Limpiar archivo temporal
             if (fs.existsSync(req.file.path)) {
@@ -283,17 +324,15 @@ export const actualizarParticipante = async (req, res) => {
             }
         }
 
-        // Si se actualiza la empresa, validar y sincronizar
-        if (updateData.empresa_id) {
-            const empresa = await Empresa.findById(updateData.empresa_id);
-            if (!empresa) {
-                return res.status(404).json({ message: 'Empresa no encontrada' });
-            }
-            updateData.empresaProdecendia = empresa.nombre;
-        }
+        const participanteUpdated = await Participantes.findByIdAndUpdate(
+            id, 
+            updateData, 
+            { new: true }
+        );
 
-        const participanteUpdated = await Participantes.findByIdAndUpdate(id, updateData, { new: true });
-        if (!participanteUpdated) return res.status(404).json({ message: 'Participante no encontrado' });
+        if (!participanteUpdated) {
+            return res.status(404).json({ message: 'Participante no encontrado' });
+        }
         
         res.json({
             ...participanteUpdated.toObject(),
@@ -316,36 +355,17 @@ export const verParticipante = async (req, res) => {
     const { id } = req.params;
     try {
         const participanteFound = await Participantes.findById(id);
-        if (!participanteFound) return res.status(404).json({ message: 'Participante no encontrado' });
-
-        // Cargar cursos manualmente desde la otra base
-        const cursos = await Promise.all(participanteFound.cursos_inscritos.map(async (inscripcion) => {
-            const curso = await Curso.findById(inscripcion.curso_id);
-            return {
-                ...inscripcion.toObject(),
-                curso: curso ? curso.toObject() : null
-            };
-        }));
-
-        // Cargar información de la empresa si existe
-        let empresaInfo = null;
-        if (participanteFound.empresa_id) {
-            const empresa = await Empresa.findById(participanteFound.empresa_id);
-            if (empresa) {
-                empresaInfo = {
-                    id: empresa._id,
-                    nombre: empresa.nombre,
-                    tipo: empresa.tipo,
-                    municipio: empresa.municipio,
-                    rfc: empresa.rfc
-                };
-            }
+        if (!participanteFound) {
+            return res.status(404).json({ message: 'Participante no encontrado' });
         }
 
+        // Agregar conteo de certificados activos
+        const certificadosActivos = participanteFound.certificados?.filter(c => c.estado === 'activo').length || 0;
+
         res.json({ 
-            ...participanteFound.toObject(), 
-            cursos_inscritos: cursos,
-            empresa_info: empresaInfo
+            ...participanteFound.toObject(),
+            certificados_activos: certificadosActivos,
+            total_certificados: participanteFound.certificados?.length || 0
         });
 
     } catch (error) {
@@ -355,17 +375,34 @@ export const verParticipante = async (req, res) => {
 
 export const verParticipantes = async (req, res) => {
     try {
-        // Solo mostrar participantes activos (por defecto)
+        const { 
+            fechaInicio, 
+            fechaFin, 
+            tipoFecha = 'fechaRegistro' // puede ser 'fechaRegistro' o 'createdAt'
+        } = req.query;
+
+        let filtro = {};
+
+        // Filtro por estado (mantiene el código existente)
         const incluirInactivos = req.query.incluirInactivos === 'true';
-        const filtro = incluirInactivos ? {} : { 
-            $or: [
-                { estado: 'activo' },
-                { estado: { $exists: false } } // Para registros antiguos sin campo estado
-            ]
-        };
-        
-        const participantes = await Participantes.find(filtro);
-        
+        if (!incluirInactivos) {
+            filtro.estado = 'activo';
+        }
+
+        // Agregar filtros de fecha si se proporcionan
+        if (fechaInicio || fechaFin) {
+            filtro[tipoFecha] = {};
+            if (fechaInicio) {
+                filtro[tipoFecha].$gte = new Date(fechaInicio);
+            }
+            if (fechaFin) {
+                filtro[tipoFecha].$lte = new Date(fechaFin);
+            }
+        }
+
+        const participantes = await Participantes.find(filtro)
+            .sort({ [tipoFecha]: -1 }); // Ordenar por la fecha seleccionada
+
         // Agregar información básica de empresa para cada participante
         const participantesConEmpresa = await Promise.all(
             participantes.map(async (participante) => {
@@ -418,14 +455,17 @@ export const subirCertificado = async (req, res) => {
 
         // Subir certificado PDF a Cloudinary
         const result = await uploadCertificado(req.file.path);
+        console.log("ANTES del push:", participante.certificados);
 
         // Actualizar el participante con los datos completos del certificado
-        participante.certificado = {
-            url: result.secure_url,
-            public_id: result.public_id,
-            nombre_archivo: req.file.originalname,
-            fecha_subida: new Date()
-        };
+        participante.certificados.push({
+    url: result.secure_url,
+    public_id: result.public_id,
+    nombre_archivo: req.file.originalname,
+    tipo: req.body.tipo,
+    descripcion: req.body.descripcion,
+    fecha_subida: new Date()
+});
         
         await participante.save();
 
@@ -434,15 +474,12 @@ export const subirCertificado = async (req, res) => {
             fs.unlinkSync(req.file.path);
         }
 
-        res.json({ 
+        res.json({
             message: 'Certificado PDF subido correctamente',
-            certificado: participante.certificado,
-            participante: {
-                id: participante._id,
-                nombre: participante.nombre,
-                correo: participante.correo
-            }
+            participante: participante  // Devuelve todo el participante con certificados actualizados
         });
+
+console.log("DESPUÉS del push:", participante.certificados);
         
     } catch (error) {
         console.error('Error en subirCertificado:', error);
@@ -818,5 +855,61 @@ export const descargarCertificado = async (req, res) => {
         res.status(500).json({ 
             message: 'Error interno del servidor: ' + error.message
         });
+    }
+};
+
+// Agregar una nueva función para obtener estadísticas por fechas
+export const obtenerEstadisticasPorFecha = async (req, res) => {
+    try {
+        const { 
+            fechaInicio, 
+            fechaFin, 
+            tipoFecha = 'fechaRegistro'
+        } = req.query;
+
+        let filtro = {};
+        if (fechaInicio || fechaFin) {
+            filtro[tipoFecha] = {};
+            if (fechaInicio) filtro[tipoFecha].$gte = new Date(fechaInicio);
+            if (fechaFin) filtro[tipoFecha].$lte = new Date(fechaFin);
+        }
+
+        const estadisticas = await Participantes.aggregate([
+            { $match: filtro },
+            { 
+                $group: {
+                    _id: null,
+                    total: { $sum: 1 },
+                    activos: { 
+                        $sum: { 
+                            $cond: [{ $eq: ["$estado", "activo"] }, 1, 0] 
+                        }
+                    },
+                    inactivos: { 
+                        $sum: { 
+                            $cond: [{ $eq: ["$estado", "inactivo"] }, 1, 0] 
+                        }
+                    },
+                    promedioEdad: { $avg: "$edad" }
+                }
+            }
+        ]);
+
+        res.json({
+            periodo: {
+                inicio: fechaInicio,
+                fin: fechaFin,
+                tipoFecha
+            },
+            estadisticas: estadisticas[0] || {
+                total: 0,
+                activos: 0,
+                inactivos: 0,
+                promedioEdad: 0
+            }
+        });
+
+    } catch (error) {
+        res.status(500).json({ message: error.message });
     }
 };

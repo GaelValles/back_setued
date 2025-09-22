@@ -70,17 +70,24 @@ export const login = async (req, res) => {
 
         const token = await createAccessToken({ id: AdminFound._id });
 
-        // 🔥 Cookie con opciones
         res.cookie('token', token, {
-            httpOnly: true,      // nadie puede leerla con JS
-            secure: true,        // HTTPS obligatorio en producción
-            sameSite: 'None',    // permite cookies cross-site
-            maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None',
+            maxAge: 7 * 24 * 60 * 60 * 1000,
             path: '/'
-
         });
 
-        res.json({ message: 'Usuario encontrado correctamente' });
+        // Enviar datos del usuario en la respuesta
+        res.json({
+            id: AdminFound._id,
+            nombre: AdminFound.nombre,
+            correo: AdminFound.correo,
+            rol: AdminFound.rol,
+            createdAt: AdminFound.createdAt,
+            updatedAt: AdminFound.updatedAt,
+            message: 'Usuario encontrado correctamente'
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

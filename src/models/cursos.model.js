@@ -9,7 +9,7 @@ const cursosSchema = new mongoose.Schema({
     tipo: {
         type: String,
         required: true,
-        enum: ["curso", "evaluacion", "certificacion", "diplomado", "distintivo", "seminario"]
+        enum: ["curso", "evaluacion", "certificacion", "diplomado", "distintivo", "seminario", "Taller"]
     },
     fechaInicio: {
         type: Date,
