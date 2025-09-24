@@ -2,7 +2,7 @@ import {connectDBCursos}  from '../db.js';
 import mongoose from "mongoose";
 
 const cursosSchema = new mongoose.Schema({
-    nombre: {
+    nombreCurso: {
         type: String,
         required: true
     },
