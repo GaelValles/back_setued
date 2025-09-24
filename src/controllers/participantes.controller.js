@@ -354,12 +354,28 @@ export const actualizarParticipante = async (req, res) => {
 export const verParticipante = async (req, res) => {
     const { id } = req.params;
     try {
-        const participanteFound = await Participantes.findById(id)
-            .populate('cursos_inscritos.curso_id', 'nombreCurso modalidad'); 
-            // 👆 Trae el nombre y modalidad del curso real
-
+        // Primero obtenemos el participante sin populate
+        const participanteFound = await Participantes.findById(id);
+        
         if (!participanteFound) {
             return res.status(404).json({ message: 'Participante no encontrado' });
+        }
+
+        // Si tiene cursos inscritos, obtenemos los datos manualmente
+        if (participanteFound.cursos_inscritos && participanteFound.cursos_inscritos.length > 0) {
+            const cursosIds = participanteFound.cursos_inscritos.map(c => c.curso_id);
+            
+            // Usar la conexión específica para obtener los cursos
+            const cursos = await Curso.find({ _id: { $in: cursosIds } }).select('nombreCurso modalidad');
+            
+            // Crear un mapa para asociar los cursos
+            const cursosMap = new Map(cursos.map(c => [c._id.toString(), c]));
+            
+            // Enriquecer la información de cursos_inscritos
+            participanteFound.cursos_inscritos = participanteFound.cursos_inscritos.map(inscripcion => ({
+                ...inscripcion.toObject(),
+                curso: cursosMap.get(inscripcion.curso_id.toString()) || null
+            }));
         }
 
         const certificadosActivos = participanteFound.certificados?.filter(c => c.estado === 'activo').length || 0;
@@ -371,10 +387,10 @@ export const verParticipante = async (req, res) => {
         });
 
     } catch (error) {
+        console.error('Error en verParticipante:', error);
         res.status(500).json({ message: error.message });
     }
 };
-
 
 export const verParticipantes = async (req, res) => {
     try {
