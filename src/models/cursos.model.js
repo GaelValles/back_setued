@@ -71,6 +71,10 @@ const cursosSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Participantes'
     },
+    nombreCurso: {
+        type: String,
+        required: true
+    },
     fecha_inscripcion: {
         type: Date,
         default: Date.now
