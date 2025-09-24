@@ -354,25 +354,27 @@ export const actualizarParticipante = async (req, res) => {
 export const verParticipante = async (req, res) => {
     const { id } = req.params;
     try {
-        const participanteFound = await Participantes.findById(id);
+        const participanteFound = await Participantes.findById(id)
+            .populate('cursos_inscritos.curso_id', 'nombreCurso modalidad'); 
+            // 👆 Trae el nombre y modalidad del curso real
+
         if (!participanteFound) {
             return res.status(404).json({ message: 'Participante no encontrado' });
         }
 
-        // Agregar conteo de certificados activos
         const certificadosActivos = participanteFound.certificados?.filter(c => c.estado === 'activo').length || 0;
-        
-        res.json({ 
+
+        res.json({
             ...participanteFound.toObject(),
             certificados_activos: certificadosActivos,
-            total_certificados: participanteFound.certificados?.length || 0,
-
+            total_certificados: participanteFound.certificados?.length || 0
         });
 
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
 };
+
 
 export const verParticipantes = async (req, res) => {
     try {

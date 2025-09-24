@@ -104,11 +104,9 @@ export const verCursos = async (req, res) => {
 export const inscribirParticipante = async (req, res) => {
     const { cursoId } = req.params;
     const { participanteId } = req.body;
-    
+
     try {
         const curso = await Curso.findById(cursoId);
-        console.log("el curso",curso);
-        const nombreCurso=curso.nombreCurso;
         if (!curso) return res.status(404).json({ message: 'Curso no encontrado' });
 
         const participante = await Participantes.findById(participanteId);
@@ -123,17 +121,32 @@ export const inscribirParticipante = async (req, res) => {
         }
 
         const fechaInscripcion = new Date();
-        curso.participantes.push({ participante_id: participanteId, nombreCurso: nombreCurso,fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
-        participante.cursos_inscritos.push({ curso_id: cursoId, nombreCurso: nombreCurso,fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
+
+        // Guardar en curso
+        curso.participantes.push({
+            participante_id: participanteId,
+            fecha_inscripcion: fechaInscripcion,
+            estado: 'inscrito'
+        });
+
+        // Guardar en participante (nombreCurso desde el curso real)
+        participante.cursos_inscritos.push({
+            curso_id: cursoId,
+            nombreCurso: curso.nombreCurso,
+            fecha_inscripcion: fechaInscripcion,
+            estado: 'inscrito',
+            modalidad: curso.modalidad
+        });
 
         await curso.save();
         await participante.save();
 
         res.json({ message: 'Participante inscrito correctamente' });
     } catch (error) {
-        res.status(500).json({ message: error.message }); 
+        res.status(500).json({ message: error.message });
     }
 };
+
 
 // ¡NUEVA FUNCIÓN! Para desinscribir participantes
 export const desinscribirParticipante = async (req, res) => {
