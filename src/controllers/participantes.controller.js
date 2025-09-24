@@ -528,7 +528,7 @@ export const inscribirACurso = async (req, res) => {
         // Agregar curso al participante
         participante.cursos_inscritos.push({
             curso_id: cursoId,
-            nombre_curso: curso.nombre,
+            nombre: curso.nombre,
             fecha_inscripcion: new Date(),
             estado: 'inscrito',
             modalidad: curso.modalidad

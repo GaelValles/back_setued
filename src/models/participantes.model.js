@@ -96,7 +96,7 @@ const participantesSchema = new mongoose.Schema({
         },
         nombre: {
             type: String,
-            
+            required: true
         },
         fecha_inscripcion: {
             type: Date,
