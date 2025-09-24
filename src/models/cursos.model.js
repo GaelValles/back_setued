@@ -1,4 +1,4 @@
-import {connectDBCursos}  from '../db.js';
+import { connectDBCursos } from '../db.js';
 import mongoose from "mongoose";
 
 const cursosSchema = new mongoose.Schema({
@@ -71,6 +71,10 @@ const cursosSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Participantes'
     },
+    nombreCurso: {
+        type: String,
+        required: true
+    },
     fecha_inscripcion: {
         type: Date,
         default: Date.now
@@ -84,7 +88,6 @@ const cursosSchema = new mongoose.Schema({
 },
 {
     timestamps: true
-}
-);
+});
 
 export default connectDBCursos.model('Curso', cursosSchema);

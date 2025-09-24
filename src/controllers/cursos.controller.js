@@ -3,11 +3,11 @@ import Participantes from "../models/participantes.model.js";
 
 //Funcion para subir cursos
 export const subirCurso = async (req, res) => {
-    const { nombre, tipo, fechaInicio, fechaFin, horario, duracion, modalidad, instructor, perfilInstructor, objetivos,
+    const { nombreCurso, tipo, fechaInicio, fechaFin, horario, duracion, modalidad, instructor, perfilInstructor, objetivos,
             perfilParticipante, cupoMinimo, cupoMaximo, costo, costoGeneral, temario, procesoInscripcion } = req.body;
     try {
         const newCurso = new Curso({
-            nombre, tipo, fechaInicio, fechaFin, horario, duracion, modalidad, instructor, perfilInstructor, objetivos,
+            nombreCurso, tipo, fechaInicio, fechaFin, horario, duracion, modalidad, instructor, perfilInstructor, objetivos,
             perfilParticipante, cupoMinimo, cupoMaximo, costo, costoGeneral, temario, procesoInscripcion
         });
 
@@ -104,11 +104,9 @@ export const verCursos = async (req, res) => {
 export const inscribirParticipante = async (req, res) => {
     const { cursoId } = req.params;
     const { participanteId } = req.body;
-    
+
     try {
         const curso = await Curso.findById(cursoId);
-        console.log("el curso",curso);
-        const nombreCurso=curso.nombreCurso;
         if (!curso) return res.status(404).json({ message: 'Curso no encontrado' });
 
         const participante = await Participantes.findById(participanteId);
@@ -123,7 +121,7 @@ export const inscribirParticipante = async (req, res) => {
         }
 
         const fechaInscripcion = new Date();
-        curso.participantes.push({ participante_id: participanteId,fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
+        curso.participantes.push({ participante_id: participanteId, nombreCurso: nombreCurso,fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
         participante.cursos_inscritos.push({ curso_id: cursoId, nombreCurso: nombreCurso,fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
 
         await curso.save();
@@ -131,9 +129,10 @@ export const inscribirParticipante = async (req, res) => {
 
         res.json({ message: 'Participante inscrito correctamente' });
     } catch (error) {
-        res.status(500).json({ message: error.message }); 
+        res.status(500).json({ message: error.message });
     }
 };
+
 
 // ¡NUEVA FUNCIÓN! Para desinscribir participantes
 export const desinscribirParticipante = async (req, res) => {
