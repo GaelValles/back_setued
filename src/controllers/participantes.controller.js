@@ -361,11 +361,12 @@ export const verParticipante = async (req, res) => {
 
         // Agregar conteo de certificados activos
         const certificadosActivos = participanteFound.certificados?.filter(c => c.estado === 'activo').length || 0;
-
+        
         res.json({ 
             ...participanteFound.toObject(),
             certificados_activos: certificadosActivos,
-            total_certificados: participanteFound.certificados?.length || 0
+            total_certificados: participanteFound.certificados?.length || 0,
+
         });
 
     } catch (error) {
@@ -527,6 +528,7 @@ export const inscribirACurso = async (req, res) => {
         // Agregar curso al participante
         participante.cursos_inscritos.push({
             curso_id: cursoId,
+            nombre_curso: curso.nombre, // Guardar el nombre del curso
             fecha_inscripcion: new Date(),
             estado: 'inscrito'
         });

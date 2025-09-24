@@ -94,6 +94,10 @@ const participantesSchema = new mongoose.Schema({
             ref: 'Curso',
             required: true
         },
+        nombre_curso: {
+            type: String,
+            required: true
+        },
         fecha_inscripcion: {
             type: Date,
             default: Date.now
