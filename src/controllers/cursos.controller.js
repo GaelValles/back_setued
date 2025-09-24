@@ -129,7 +129,7 @@ export const inscribirParticipante = async (req, res) => {
 
         res.json({ message: 'Participante inscrito correctamente' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        res.status(500).json({ message: error.message }); 
     }
 };
 
