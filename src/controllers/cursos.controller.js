@@ -107,6 +107,8 @@ export const inscribirParticipante = async (req, res) => {
     
     try {
         const curso = await Curso.findById(cursoId);
+        console.log("el curso",curso);
+        const nombreCurso=curso.nombreCurso;
         if (!curso) return res.status(404).json({ message: 'Curso no encontrado' });
 
         const participante = await Participantes.findById(participanteId);
