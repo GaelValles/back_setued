@@ -684,6 +684,7 @@ export const verParticipantesDeCurso = async (req, res) => {
                     empresa_info: empresaInfo,
                     inscripcion: {
                         fecha_inscripcion: inscripcion.fecha_inscripcion,
+                        nombreCurso: inscripcion.nombreCurso,
                         estado: inscripcion.estado,
                         calificacion: inscripcion.calificacion,
                         comentarios: inscripcion.comentarios
