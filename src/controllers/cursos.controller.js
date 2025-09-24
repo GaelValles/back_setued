@@ -66,7 +66,8 @@ export const verCurso = async (req, res) => {
 
         if (cursoCompleto.participantes && cursoCompleto.participantes.length > 0) {
             const participantesIds = cursoCompleto.participantes.map(p => p.participante_id);
-            const participantesData = await Participantes.find({ _id: { $in: participantesIds } }).select('nombre correo telefono empresaProdecendia');
+            const participantesNombres = cursoCompleto.participantes.map(p => p.nombre);
+            const participantesData = await Participantes.find({ _id: { $in: participantesIds } }, { nombre: { $in: participantesNombres } }).select('nombre correo telefono empresaProdecendia');
             
             // Crear un mapa para búsqueda eficiente
             const participantesMap = new Map(participantesData.map(p => [p._id.toString(), p]));

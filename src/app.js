@@ -17,7 +17,7 @@ const app = express();
 app.use(morgan('dev'));
 app.set('trust proxy', 1);
 app.use(cors({
-  origin: ['http://localhost:5173', 'https://pruebas-80fw.onrender.com'],
+  origin: ['http://localhost:5173', 'https://pruebas-80fw.onrender.com', 'https://back-setued.onrender.com'],
   credentials: true                // permite enviar cookies
 }));
 app.use(express.json());

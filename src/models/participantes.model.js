@@ -9,7 +9,6 @@ const participantesSchema = new mongoose.Schema({
     },
     sexo: {
         type: String,
-        required: true,
         enum: ['Hombre', 'Mujer', 'No binario'],
         message: 'El sexo debe ser: Hombre, Mujer o No binario'
     },
