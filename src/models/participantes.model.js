@@ -94,7 +94,7 @@ const participantesSchema = new mongoose.Schema({
             ref: 'Curso',
             required: true
         },
-        nombre: {
+        nombreCurso: {
             type: String,
             required: true
         },
