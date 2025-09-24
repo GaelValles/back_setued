@@ -94,9 +94,9 @@ const participantesSchema = new mongoose.Schema({
             ref: 'Curso',
             required: true
         },
-        nombre_curso: {
+        nombre: {
             type: String,
-            required: true
+            
         },
         fecha_inscripcion: {
             type: Date,
@@ -106,6 +106,11 @@ const participantesSchema = new mongoose.Schema({
             type: String,
             enum: ['inscrito', 'completado', 'abandonado'],
             default: 'inscrito'
+        },
+        modalidad:{
+            type: String,
+            enum: ['presencial', 'en línea', 'híbrido'],
+
         },
         calificacion: {
             type: Number,

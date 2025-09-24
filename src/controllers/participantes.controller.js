@@ -528,9 +528,10 @@ export const inscribirACurso = async (req, res) => {
         // Agregar curso al participante
         participante.cursos_inscritos.push({
             curso_id: cursoId,
-            nombre_curso: curso.nombre, // Guardar el nombre del curso
+            nombre_curso: curso.nombre,
             fecha_inscripcion: new Date(),
-            estado: 'inscrito'
+            estado: 'inscrito',
+            modalidad: curso.modalidad
         });
 
         // Agregar participante al curso en la otra DB
