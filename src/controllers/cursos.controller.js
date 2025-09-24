@@ -123,7 +123,7 @@ export const inscribirParticipante = async (req, res) => {
         }
 
         const fechaInscripcion = new Date();
-        curso.participantes.push({ participante_id: participanteId, nombreCurso: curso.nombreCurso,fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
+        curso.participantes.push({ participante_id: participanteId, nombreCurso: nombreCurso,fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
         participante.cursos_inscritos.push({ curso_id: cursoId, nombreCurso: nombreCurso,fecha_inscripcion: fechaInscripcion, estado: 'inscrito' });
 
         await curso.save();
